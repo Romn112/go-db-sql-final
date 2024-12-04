@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 type ParcelStore struct {
@@ -19,12 +20,12 @@ func (s ParcelStore) Add(p Parcel) (int, error) {
 		sql.Named("address", p.Address),
 		sql.Named("created_at", p.CreatedAt))
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("exec failed: %w", err)
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("last insert id failed: %w", err)
 	}
 
 	return int(id), nil
@@ -34,27 +35,25 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 	row := s.db.QueryRow("SELECT number, client, status, address, created_at FROM parcel WHERE number = :n",
 		sql.Named("n", number))
 
-	// заполните объект Parcel данными из таблицы
 	p := Parcel{}
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 	if err != nil {
-		return p, err
+		if err == sql.ErrNoRows {
+			return Parcel{}, nil
+		}
+		return Parcel{}, fmt.Errorf("scan failed: %w", err)
 	}
 
 	return p, nil
 }
 
 func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
-	// реализуйте чтение строк из таблицы parcel по заданному client
-	// здесь из таблицы может вернуться несколько строк
-
-	// заполните срез Parcel данными из таблицы
 	var res []Parcel
 
 	rows, err := s.db.Query("SELECT number, client, status, address, created_at FROM parcel WHERE client = :n",
 		sql.Named("n", client))
 	if err != nil {
-		return res, err
+		return nil, fmt.Errorf("query failed: %w", err)
 	}
 	defer rows.Close()
 
@@ -63,11 +62,16 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 
 		err := rows.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 		if err != nil {
-			return res, err
+			return nil, fmt.Errorf("scan failed: %w", err)
 		}
 
 		res = append(res, p)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
 	return res, nil
 }
 
@@ -76,7 +80,7 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 		sql.Named("status", status),
 		sql.Named("n", number))
 	if err != nil {
-		return err
+		return fmt.Errorf("exec failed: %w", err)
 	}
 
 	return nil
@@ -88,7 +92,7 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 		sql.Named("n", number),
 		sql.Named("s", "registered"))
 	if err != nil {
-		return err
+		return fmt.Errorf("exec failed: %w", err)
 	}
 
 	return nil
@@ -99,7 +103,7 @@ func (s ParcelStore) Delete(number int) error {
 		sql.Named("n", number),
 		sql.Named("s", "registered"))
 	if err != nil {
-		return err
+		return fmt.Errorf("exec failed: %w", err)
 	}
 	return nil
 }
