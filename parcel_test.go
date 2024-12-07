@@ -58,8 +58,8 @@ func TestAddGetDelete(t *testing.T) {
 
 	_, err = store.Get(parcel.Number)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "no rows found")
-	// Правильно ли я понял в тесте мы ожидаем, что Get вернет sql.ErrNoRows, но на самом деле он возвращает ошибку с текстом "no rows found".
+	assert.ErrorIs(t, err, sql.ErrNoRows)
+	//Как понимаю так надо было реализовать обработку ошибки
 }
 
 // TestSetAddress проверяет обновление адреса
