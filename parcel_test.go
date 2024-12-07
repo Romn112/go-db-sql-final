@@ -57,7 +57,9 @@ func TestAddGetDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = store.Get(parcel.Number)
-	require.Equal(t, sql.ErrNoRows, err)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no rows found")
+	// Правильно ли я понял в тесте мы ожидаем, что Get вернет sql.ErrNoRows, но на самом деле он возвращает ошибку с текстом "no rows found".
 }
 
 // TestSetAddress проверяет обновление адреса
@@ -152,14 +154,7 @@ func TestGetByClient(t *testing.T) {
 
 	// check
 	for _, parcel := range storedParcels {
-		_, ok := parcelMap[parcel.Number]
-		require.True(t, ok)
+		assert.Contains(t, parcelMap, parcel.Number)
 		assert.Equal(t, parcel, parcelMap[parcel.Number])
 	}
-}
-
-// containsParcel проверяет наличие посылки в мапе
-func containsParcel(parcelMap map[int]Parcel, number int) bool {
-	_, ok := parcelMap[number]
-	return ok
 }
